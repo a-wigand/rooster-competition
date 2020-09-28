@@ -32,8 +32,8 @@ SOUNDFILE = './rooster_competition.wav'
 RATE = 44100
 FRAME = 512
 N_MFCC = 15
-STRIDE = 250
-WINDOW_LENGTH = 2500
+STRIDE = 500
+WINDOW_LENGTH = 1000
 THRESHOLD = 1
 
 def print_file_info(file):
@@ -202,7 +202,7 @@ def get_mfcc_df(files, n_mfcc = N_MFCC):
             dfTemp['mean_mfcc_'+str(n)] = [np.mean(mfcct[n])]
             dfTemp['std_mfcc_'+str(n)] = [np.std(mfcct[n])]
             dfTemp['median_mfcc_'+str(n)] = [np.median(mfcct[n])]
-            dfTemp['max_mfcc_'+str(n)] = [np.max(mfcct[n])]
+            # dfTemp['max_mfcc_'+str(n)] = [np.max(mfcct[n])]
 
         df = df.append(dfTemp)
     return df
@@ -251,10 +251,10 @@ def train():
     # Set up the training pipeline
     steps = [('scaler', StandardScaler())]
     # Choose one of the classification models:
-    # steps += [('knn', KNeighborsClassifier(n_neighbors=2))]
+    steps += [('knn', KNeighborsClassifier(n_neighbors=2))]
     # steps += [('logreg', LogisticRegression())]
     # steps += [('SVM', SVC())]
-    steps += [('tree',DecisionTreeClassifier(max_depth=10, random_state=42))]
+    # steps += [('tree',DecisionTreeClassifier(max_depth=10, random_state=42))]
     pipeline = Pipeline(steps)
 
     # Training
@@ -275,9 +275,6 @@ def get_window_df(file, wl = WINDOW_LENGTH, stride = STRIDE):
 
     # calculate window size based on milliseconds
     windowLength = sr*wl//1000
-    # num_w = len(audio)//windowLength
-    # frameSize = windowLength
-    #for i in range(nw):
     j = k = 0
     last = len(audio)
     while(j < last):
@@ -285,8 +282,8 @@ def get_window_df(file, wl = WINDOW_LENGTH, stride = STRIDE):
         i = sr*k*stride//1000
         j = i + windowLength
         # print('from {} to {}'.format(i/sr,j/sr))
-        dfTemp = pd.DataFrame()#columns = cols)
-        a = audio[i:j]#[i*windowLength:(i+1)*windowLength]
+        dfTemp = pd.DataFrame()
+        a = audio[i:j]
         msp = lr.feature.melspectrogram(a, sr=RATE, hop_length=FRAME)
         dbAmplitude = lr.amplitude_to_db(msp)
         mfcc = lr.feature.mfcc(S=dbAmplitude, n_mfcc=n_mfcc).transpose()
@@ -295,7 +292,7 @@ def get_window_df(file, wl = WINDOW_LENGTH, stride = STRIDE):
             dfTemp['mean_mfcc_'+str(n)] = [np.mean(mfcct[n])]
             dfTemp['std_mfcc_'+str(n)] = [np.std(mfcct[n])]
             dfTemp['median_mfcc_'+str(n)] = [np.median(mfcct[n])]
-            dfTemp['max_mfcc_'+str(n)] = [np.max(mfcct[n])]
+            # dfTemp['max_mfcc_'+str(n)] = [np.max(mfcct[n])]
         dfTemp['start'] = int(i/sr*1000)
         dfTemp['end'] = int(j/sr*1000)
 
@@ -372,9 +369,7 @@ def get_results(pipeline, testScore):
     
     timePos = np.arange(1,dfPosCount.shape[0]+1)*stride-stride/2
     timePos = timePos/1000
-    # timePos = np.linspace(0,time[-1],dfPosCount.shape[0])
-    print(timePos[-1])
-
+    
     # break down the result counts into binary results based on a threshold
     threshold = THRESHOLD
     counts = dfPosCount['count'].values
@@ -388,7 +383,7 @@ def get_results(pipeline, testScore):
     print_results(classified,stride)
     
     fig, ax = plt.subplots(figsize=(9,3))
-    fig.suptitle('Overlayed Classification (w={}ms, stride={}ms, #MFCC={})\nTrained with decision tree, test_acc={}'.format(windowLength,stride,N_MFCC,testScore))
+    fig.suptitle('Overlaid Classification (w={}ms, stride={}ms, #MFCC={})\nTrained with knn, test_acc={}'.format(windowLength,stride,N_MFCC,testScore))
     ax.set_xlim((0,len(audio)/sr))
     ax.plot(time,envelope,c='C0',zorder=1)
     ax.set_xlabel('Time in s')
@@ -399,9 +394,8 @@ def get_results(pipeline, testScore):
     ax2.set_yticks([0,1])
 
     ax2.scatter(timePos,classified,marker='.',s=4,c='C3',zorder=2)
-    # ax2.scatter(timePos,counts,s=1,marker='x',c='C4',zorder=3)
     plt.tight_layout()
-    fig.savefig('images/results_tree10_w{}_s{}_mfcc{}_thr{}_all.png'.format(windowLength,stride,N_MFCC,THRESHOLD))
+    fig.savefig('images/results_knn_w{}_s{}_mfcc{}_thr{}_all.png'.format(windowLength,stride,N_MFCC,THRESHOLD))
     plt.show()
 
 
@@ -416,7 +410,3 @@ def get_results(pipeline, testScore):
 # plot_mfcc_clusters()
 pipeline, testScore = train()
 get_results(pipeline, testScore)
-
-
-# tmp = [0,1,1,1,0,0,1,0,0,1,1,0]
-# print(get_durations(tmp))
