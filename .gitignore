@@ -1,0 +1,5 @@
+rooster_challenge/dataset
+**/.vscode/*
+dataset/ESC-50-master/*
+dataset/noise/*
+dataset/search-windows/*
